@@ -22,6 +22,7 @@ namespace EmailIpAddressChange
             if (_switch.TurnOn())
             {
                 _logger.Info("Started");
+                LogNetworkInterfaces();
                 NetworkChange.NetworkAddressChanged += NetworkChangeOnNetworkAddressChanged;
             }
         }
@@ -37,6 +38,11 @@ namespace EmailIpAddressChange
 
         private void NetworkChangeOnNetworkAddressChanged(object sender, EventArgs eventArgs)
         {
+            LogNetworkInterfaces();
+        }
+
+        private void LogNetworkInterfaces()
+        {
             foreach (var @interface in NetworkInterface.GetAllNetworkInterfaces())
             {
                 _logger.Info("Id = {0}, Name = {1}, Type = {2}, Status = {3}, Speed = {4}",
@@ -45,6 +51,12 @@ namespace EmailIpAddressChange
                              @interface.NetworkInterfaceType,
                              @interface.OperationalStatus,
                              @interface.Speed);
+                foreach (var address in @interface.GetIPProperties().UnicastAddresses)
+                {
+                    _logger.Info("Unicast address family = {0}, address = {1}",
+                                 address.Address.AddressFamily,
+                                 address.Address);
+                }
             }
         }
     }
