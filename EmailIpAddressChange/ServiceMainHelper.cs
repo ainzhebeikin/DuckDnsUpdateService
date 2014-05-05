@@ -22,7 +22,7 @@ namespace EmailIpAddressChange
             TaskScheduler.UnobservedTaskException += (sender, args) => Logger.FatalException("Unhandled exception", args.Exception);
         }
 
-        public static void Run<T>(string[] args, Func<string[], bool> customMain = null) where T : ServiceBase, new()
+        public static void Run<T>(string[] args) where T : ServiceBase, new()
         {
             try
             {
@@ -30,7 +30,7 @@ namespace EmailIpAddressChange
                 {
                     InitConsoleLogger();
                     Logger.Debug("Started in user mode");
-                    ConsoleMain<T>(args, customMain);
+                    ConsoleMain<T>(args);
                 }
                 else
                 {
@@ -62,7 +62,7 @@ namespace EmailIpAddressChange
             ServiceBase.Run(new T());
         }
 
-        private static void ConsoleMain<T>(string[] args, Func<string[], bool> customMain) where T : ServiceBase, new()
+        private static void ConsoleMain<T>(string[] args) where T : ServiceBase, new()
         {
             var parameter = string.Concat(args);
 
@@ -78,7 +78,7 @@ namespace EmailIpAddressChange
             {
                 RunAsService<T>();
             }
-            else if (customMain == null || !customMain(args))
+            else
             {
                 Logger.Warn("Usage: {0} -i | -u | --console", AppDomain.CurrentDomain.FriendlyName);
                 Environment.Exit(1);
