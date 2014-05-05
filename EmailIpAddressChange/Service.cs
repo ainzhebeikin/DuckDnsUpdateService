@@ -1,8 +1,4 @@
-﻿using System;
-using System.Configuration;
-using System.Linq;
-using System.Net;
-using System.Net.NetworkInformation;
+﻿using System.Configuration;
 using System.ServiceProcess;
 using NLog;
 
@@ -14,32 +10,33 @@ namespace EmailIpAddressChange
 
         private readonly Switch _switch = new Switch();
 
-        private readonly string _interfaceName;
-
         private AddressChangeListener _addressChangeListener;
+
+        private EmailSender _emailSender;
 
         public Service()
         {
             InitializeComponent();
             CanStop = true;
-            _interfaceName = ConfigurationManager.AppSettings["InterfaceName"];
         }
 
         protected override void OnStart(string[] args)
         {
             if (_switch.TurnOn())
             {
-                if (null == _interfaceName)
-                {
-                    _logger.Error("InterfaceName is not specified; aborting");
-                    Stop();
-                }
-                else
-                {
-                    _addressChangeListener = new AddressChangeListener(_interfaceName);
-                    _logger.Info("Started");
-                }
+                _emailSender = new EmailSender(StringProtector.UnprotectString(ConfigurationManager.AppSettings["SmtpUsername"]),
+                                               StringProtector.UnprotectString(ConfigurationManager.AppSettings["SmtpPassword"]));
+                _addressChangeListener = new AddressChangeListener(ConfigurationManager.AppSettings["InterfaceName"]);
+                _addressChangeListener.AddressChanged += OnAddressChanged;
+                _addressChangeListener.Start();
+                _logger.Info("Started");
             }
+        }
+
+        private void OnAddressChanged(string newAddress)
+        {
+            _logger.Info("New address: {0}", newAddress);
+            _emailSender.Send(ConfigurationManager.AppSettings["EmailRecipient"], ConfigurationManager.AppSettings["EmailSubject"], newAddress);
         }
 
         protected override void OnStop()
@@ -48,8 +45,14 @@ namespace EmailIpAddressChange
             {
                 if (null != _addressChangeListener)
                 {
+                    _addressChangeListener.AddressChanged -= OnAddressChanged;
                     _addressChangeListener.Dispose();
                     _addressChangeListener = null;
+                }
+                if (null != _emailSender)
+                {
+                    _emailSender.Dispose();
+                    _emailSender = null;
                 }
                 _logger.Info("Stopped");
             }

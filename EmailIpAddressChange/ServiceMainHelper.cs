@@ -1,6 +1,5 @@
 using System;
 using System.Configuration.Install;
-using System.Linq;
 using System.Reflection;
 using System.ServiceProcess;
 using System.Threading;
@@ -23,7 +22,7 @@ namespace EmailIpAddressChange
             TaskScheduler.UnobservedTaskException += (sender, args) => Logger.FatalException("Unhandled exception", args.Exception);
         }
 
-        public static void Run<T>(string[] args) where T : ServiceBase, new()
+        public static void Run<T>(string[] args, Func<string[], bool> customMain = null) where T : ServiceBase, new()
         {
             try
             {
@@ -31,7 +30,7 @@ namespace EmailIpAddressChange
                 {
                     InitConsoleLogger();
                     Logger.Debug("Started in user mode");
-                    ConsoleMain<T>(args);
+                    ConsoleMain<T>(args, customMain);
                 }
                 else
                 {
@@ -51,7 +50,7 @@ namespace EmailIpAddressChange
             var configuration = LogManager.Configuration;
             var target = new ColoredConsoleTarget
             {
-                Layout = "${longdate} ${threadid:padding=3:padCharacter=0} ${logger} - ${message}${onexception:${newline}${exception:format=ToString}}",
+                Layout = "${longdate} ${logger:shortName=true} - ${message}${onexception:${newline}${exception:format=ToString}}",
             };
             configuration.AddTarget("stdout", target);
             configuration.LoggingRules.Add(new LoggingRule("*", LogLevel.Debug, target));
@@ -63,30 +62,25 @@ namespace EmailIpAddressChange
             ServiceBase.Run(new T());
         }
 
-        private static void ConsoleMain<T>(string[] args) where T : ServiceBase, new()
+        private static void ConsoleMain<T>(string[] args, Func<string[], bool> customMain) where T : ServiceBase, new()
         {
-            var installKeys = new[] {"-i", "--install"};
-            var uninstallKeys = new[] {"-u", "--uninstall"};
-            var consoleKeys = new[] {"--console"};
             var parameter = string.Concat(args);
 
-            if (installKeys.Contains(parameter))
+            if (0 == string.Compare(parameter, "-i", StringComparison.OrdinalIgnoreCase))
             {
                 ManagedInstallerClass.InstallHelper(new[] {Assembly.GetExecutingAssembly().Location});
             }
-            else if (uninstallKeys.Contains(parameter))
+            else if (0 == string.Compare(parameter, "-u", StringComparison.OrdinalIgnoreCase))
             {
                 ManagedInstallerClass.InstallHelper(new[] {"/u", Assembly.GetExecutingAssembly().Location});
             }
-            else if (consoleKeys.Contains(parameter))
+            else if (0 == string.Compare(parameter, "--console", StringComparison.OrdinalIgnoreCase))
             {
                 RunAsService<T>();
             }
-            else
+            else if (customMain == null || !customMain(args))
             {
-                Logger.Warn("Usage: {0} {1}",
-                            AppDomain.CurrentDomain.FriendlyName,
-                            string.Join("|", installKeys.Union(uninstallKeys).Union(consoleKeys)));
+                Logger.Warn("Usage: {0} -i | -u | --console", AppDomain.CurrentDomain.FriendlyName);
                 Environment.Exit(1);
             }
         }
