@@ -1,4 +1,4 @@
-﻿namespace EmailIpAddressChange
+﻿namespace DuckDnsUpdateService
 {
     partial class Service
     {
@@ -29,7 +29,7 @@
         private void InitializeComponent()
         {
             components = new System.ComponentModel.Container();
-            this.ServiceName = "Service";
+            this.ServiceName = "DuckDnsUpdateService";
         }
 
         #endregion

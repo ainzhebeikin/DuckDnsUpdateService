@@ -4,7 +4,7 @@ using System.Linq;
 using System.ServiceProcess;
 using NLog;
 
-namespace EmailIpAddressChange
+namespace DuckDnsUpdateService
 {
     partial class Service : ServiceBase
     {

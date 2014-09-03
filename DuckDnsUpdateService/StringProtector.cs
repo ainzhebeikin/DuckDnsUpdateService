@@ -2,7 +2,7 @@
 using System.Security.Cryptography;
 using System.Text;
 
-namespace EmailIpAddressChange
+namespace DuckDnsUpdateService
 {
     internal static class StringProtector
     {

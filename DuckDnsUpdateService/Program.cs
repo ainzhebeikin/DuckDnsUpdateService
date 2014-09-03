@@ -1,4 +1,4 @@
-﻿namespace EmailIpAddressChange
+﻿namespace DuckDnsUpdateService
 {
     internal class Program
     {

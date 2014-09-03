@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Net;
 
-namespace EmailIpAddressChange
+namespace DuckDnsUpdateService
 {
     internal class DuckDnsUpdater
     {

@@ -1,6 +1,6 @@
 ﻿using System.ServiceProcess;
 
-namespace EmailIpAddressChange
+namespace DuckDnsUpdateService
 {
     partial class ProjectInstaller
     {
@@ -39,8 +39,8 @@ namespace EmailIpAddressChange
             // 
             // serviceInstaller
             // 
-            this.serviceInstaller.ServiceName = "EmailIpAddressChange";
-            this.serviceInstaller.Description = "Sends emails on updates to network interfaces";
+            this.serviceInstaller.ServiceName = "DuckDnsUpdateService";
+            this.serviceInstaller.Description = "Updates duckdns.org account's domain with IP address as it changes";
             this.serviceInstaller.StartType = ServiceStartMode.Automatic;
             this.serviceInstaller.DelayedAutoStart = true;
             // 

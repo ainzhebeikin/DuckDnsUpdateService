@@ -8,7 +8,7 @@ using NLog;
 using NLog.Config;
 using NLog.Targets;
 
-namespace EmailIpAddressChange
+namespace DuckDnsUpdateService
 {
     internal abstract class ServiceMainHelper
     {

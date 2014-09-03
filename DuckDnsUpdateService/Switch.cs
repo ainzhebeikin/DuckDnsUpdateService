@@ -1,6 +1,6 @@
 ﻿using System.Threading;
 
-namespace EmailIpAddressChange
+namespace DuckDnsUpdateService
 {
     internal class Switch
     {

@@ -3,7 +3,7 @@ using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
 
-namespace EmailIpAddressChange
+namespace DuckDnsUpdateService
 {
     internal delegate void AddressChangedEventHandler(string newAddress);
 
