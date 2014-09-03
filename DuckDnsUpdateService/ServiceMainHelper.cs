@@ -14,8 +14,6 @@ namespace DuckDnsUpdateService
     {
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
-        private static readonly EventWaitHandle Signal = new ManualResetEvent(false);
-
         static ServiceMainHelper()
         {
             AppDomain.CurrentDomain.UnhandledException += (sender, args) => Logger.FatalException("Unhandled exception", (Exception) args.ExceptionObject);
@@ -89,23 +87,24 @@ namespace DuckDnsUpdateService
         {
             Logger.Info("Executing the Service interactively. Press Ctrl+C to stop...");
 
-            Console.CancelKeyPress += OnCancelKeyPress;
+            var signal = new ManualResetEvent(false);
+            Console.CancelKeyPress += (sender, args) =>
+            {
+                args.Cancel = true;
+                Logger.Info("Ctrl+C detected.");
+                signal.Set();
+            };
+
             var service = new T();
             Logger.Debug("Attempting to start service...");
             typeof(T).GetMethod("OnStart", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(service, new object[] {new string[0]});
             Logger.Debug("Service started");
 
-            Signal.WaitOne();
+            signal.WaitOne();
+
             Logger.Debug("Attempting to stop service...");
             service.Stop();
             Logger.Debug("Service stopped");
-        }
-
-        private static void OnCancelKeyPress(object sender, ConsoleCancelEventArgs args)
-        {
-            args.Cancel = true;
-            Logger.Info("Ctrl+C detected.");
-            Signal.Set();
         }
     }
 }
