@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Configuration;
+using System.Linq;
 using System.ServiceProcess;
 using NLog;
 
@@ -13,8 +14,6 @@ namespace EmailIpAddressChange
 
         private AddressChangeListener _addressChangeListener;
 
-        private EmailSender _emailSender;
-
         public Service()
         {
             InitializeComponent();
@@ -27,9 +26,7 @@ namespace EmailIpAddressChange
             {
                 try
                 {
-                    ProtectCredentials();
-                    _emailSender = new EmailSender(StringProtector.UnprotectString(ConfigurationManager.AppSettings["SmtpUsername"]),
-                                                   StringProtector.UnprotectString(ConfigurationManager.AppSettings["SmtpPassword"]));
+                    ProtectConfiguration("Token");
                     _addressChangeListener = new AddressChangeListener(ConfigurationManager.AppSettings["InterfaceName"]);
                     _addressChangeListener.AddressChanged += OnAddressChanged;
                     _addressChangeListener.Start();
@@ -43,20 +40,24 @@ namespace EmailIpAddressChange
             }
         }
 
-        private void ProtectCredentials()
+        private void ProtectConfiguration(params string[] keys)
         {
-            if (!StringProtector.IsProtected(ConfigurationManager.AppSettings["SmtpUsername"]))
+            var configuration = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+            var changed = keys.Any(key =>
             {
-                _logger.Info("Protecting credentials...");
+                if (ConfigurationManager.AppSettings[key].IsProtected())
+                {
+                    return false;
+                }
 
-                ConfigurationManager.AppSettings["SmtpUsername"] = StringProtector.ProtectString(ConfigurationManager.AppSettings["SmtpUsername"]);
-                ConfigurationManager.AppSettings["SmtpPassword"] = StringProtector.ProtectString(ConfigurationManager.AppSettings["SmtpPassword"]);
-
-                var configuration = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
-                configuration.AppSettings.Settings.Remove("SmtpUserName");
-                configuration.AppSettings.Settings.Add("SmtpUserName", ConfigurationManager.AppSettings["SmtpUsername"]);
-                configuration.AppSettings.Settings.Remove("SmtpPassword");
-                configuration.AppSettings.Settings.Add("SmtpPassword", ConfigurationManager.AppSettings["SmtpPassword"]);
+                ConfigurationManager.AppSettings[key] = ConfigurationManager.AppSettings[key].Protect();
+                configuration.AppSettings.Settings.Remove(key);
+                configuration.AppSettings.Settings.Add(key, ConfigurationManager.AppSettings[key]);
+                return true;
+            });
+            if (changed)
+            {
+                _logger.Info("Protecting configuration...");
                 configuration.Save();
             }
         }
@@ -64,7 +65,15 @@ namespace EmailIpAddressChange
         private void OnAddressChanged(string newAddress)
         {
             _logger.Info("New address: {0}", newAddress);
-            _emailSender.Send(ConfigurationManager.AppSettings["EmailRecipient"], ConfigurationManager.AppSettings["EmailSubject"], newAddress);
+            var success = DuckDnsUpdater.Update(ConfigurationManager.AppSettings["Domain"], ConfigurationManager.AppSettings["Token"].Unprotect(), newAddress);
+            if (success)
+            {
+                _logger.Info("DNS update successful");
+            }
+            else
+            {
+                _logger.Warn("DNS update failed");
+            }
         }
 
         protected override void OnStop()
@@ -76,11 +85,6 @@ namespace EmailIpAddressChange
                     _addressChangeListener.AddressChanged -= OnAddressChanged;
                     _addressChangeListener.Dispose();
                     _addressChangeListener = null;
-                }
-                if (null != _emailSender)
-                {
-                    _emailSender.Dispose();
-                    _emailSender = null;
                 }
                 _logger.Info("Stopped");
             }
